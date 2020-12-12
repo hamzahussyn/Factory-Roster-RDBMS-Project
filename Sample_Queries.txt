@@ -1,0 +1,92 @@
+--Sample Queries
+
+--1 Which employees are not assigned to any roster for a particular data range
+
+select distinct employee.employee_id as unassignedEmployees
+from employee
+where not exists (select employee_assigned.employee_id 
+                  from employee_assigned, roster 
+		  where employee.employee_id = employee_assigned.employee_id
+		  and employee_assigned.roster_id = roster.roster_id
+		  and roster.start between '2019-01-02' and '2019-01-08')
+
+
+
+
+--2 Assignment versus actual attendance of a floor or a shift or a station
+
+select employee_assigned.employee_id, 
+employee_assigned.roster_id, 
+employee_assigned.shift_id, 
+employee_assigned.station_id, 
+attendance.employee_id as attendance
+
+from employee_assigned, attendance
+
+where employee_assigned.roster_id = 15 and 
+employee_assigned.shift_id = 1 and 
+employee_assigned.station_id = 40 and 
+attendance.employee_id = employee_assigned.employee_id and 
+attendance.assignment_id = employee_assigned.roster_id and 
+attendance.shift_id = employee_assigned.shift_id
+
+
+
+
+
+--3 Leave schedule for a month
+
+
+select roster.roster_id, start as LeaveSchedule
+from roster
+where not exists(select employee_assigned.roster_id
+                 from employee_assigned
+				 where employee_assigned.roster_id = roster.roster_id)
+				                      and start between '2019-06-01' 
+                                                                and '2019-06-30'
+
+
+
+
+--4 Number of hours scheduled for each designation for a floor for a 
+--particular date range
+
+declare @startTime time = '06:00:00'
+declare @endTime time = '12:00:00'
+declare @hours_shift int = datediff(hour, @startTime, @endTime)
+
+select employee_assigned.employee_id, 
+SUM(@hours_shift) as NumberOfHours,
+employee_assigned.shift_id
+
+from employee_assigned, roster
+
+where roster.roster_id = employee_assigned.roster_id
+and roster.start between '2019-04-01' and '2019-04-30'
+and employee_assigned.floor_id = 3
+and shift_id = 1
+group by employee_assigned.employee_id, employee_assigned.shift_id
+
+
+
+
+
+--5 number of instances where more assignments are done than required 
+--for a date range
+
+select count(employee_assigned.employee_id)-300 as MoreAssignments, 
+roster.start as Dates
+
+from employee_assigned, roster
+
+where employee_assigned.roster_id = roster.roster_id
+and roster.start between '2019-01-02' and '2019-12-30'
+group by roster.start
+
+having count(employee_assigned.employee_id) > 300
+
+
+
+
+
+
